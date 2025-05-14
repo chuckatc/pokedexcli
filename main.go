@@ -6,15 +6,22 @@ import (
 	"log"
 	"os"
 	"strings"
+
+	"github.com/chuckatc/pokedexcli/internal/pokeapi"
 )
 
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
+	callback    func(*cmdConfig) error
 }
 
 var cmdRegistry map[string]cliCommand
+
+type cmdConfig struct {
+	Next     string
+	Previous string
+}
 
 func main() {
 	cmdRegistry = map[string]cliCommand{
@@ -28,6 +35,16 @@ func main() {
 			description: "Exit the Pokedex",
 			callback:    commandExit,
 		},
+		"map": {
+			name:        "map",
+			description: "Show next map locations",
+			callback:    commandMap,
+		},
+		"mapb": {
+			name:        "mapb",
+			description: "Show previous map locations",
+			callback:    commandMapB,
+		},
 	}
 
 	repl()
@@ -35,6 +52,8 @@ func main() {
 
 func repl() {
 	scanner := bufio.NewScanner(os.Stdin)
+
+	config := cmdConfig{}
 
 	for {
 		fmt.Print("Pokedex > ")
@@ -54,7 +73,7 @@ func repl() {
 
 		cliCmd, ok := cmdRegistry[command]
 		if ok {
-			err := cliCmd.callback()
+			err := cliCmd.callback(&config)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -70,7 +89,7 @@ func cleanInput(text string) []string {
 	return words
 }
 
-func commandHelp() error {
+func commandHelp(config *cmdConfig) error {
 	fmt.Print("Welcome to the Pokedex!\nUsage:\n\n")
 	for _, command := range cmdRegistry {
 		fmt.Printf("%s: %s\n", command.name, command.description)
@@ -78,8 +97,28 @@ func commandHelp() error {
 	return nil
 }
 
-func commandExit() error {
+func commandExit(config *cmdConfig) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
+	return nil
+}
+
+func commandMap(config *cmdConfig) error {
+	mapData := pokeapi.GetMap(config.Next)
+	config.Next = mapData.Next
+	config.Previous = mapData.Previous
+	for _, result := range mapData.Results {
+		fmt.Println(result.Name)
+	}
+	return nil
+}
+
+func commandMapB(config *cmdConfig) error {
+	mapData := pokeapi.GetMap(config.Previous)
+	config.Next = mapData.Next
+	config.Previous = mapData.Previous
+	for _, result := range mapData.Results {
+		fmt.Println(result.Name)
+	}
 	return nil
 }
