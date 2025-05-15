@@ -5,6 +5,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+
+	"github.com/chuckatc/pokedexcli/internal/pokecache"
 )
 
 const LocationAreaUrl = "https://pokeapi.co/api/v2/location-area/"
@@ -19,11 +21,23 @@ type LocationAreaData struct {
 	} `json:"results"`
 }
 
-func GetMap(nextUrl string) LocationAreaData {
+func GetMap(nextUrl string, cache *pokecache.Cache) LocationAreaData {
 	url := LocationAreaUrl
 	if nextUrl != "" {
 		url = nextUrl
 	}
+
+	mapData, ok := cache.Get(url)
+	if ok {
+		var data LocationAreaData
+		err := json.Unmarshal(mapData, &data)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// fmt.Println("\t\tCACHE HIT")
+		return data
+	}
+
 	res, err := http.Get(url)
 	if err != nil {
 		log.Fatal(err)
@@ -35,11 +49,14 @@ func GetMap(nextUrl string) LocationAreaData {
 		log.Fatal(err)
 	}
 
+	cache.Add(url, body)
+
 	var data LocationAreaData
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// fmt.Println("\t\tCACHE MISS")
 	return data
 }

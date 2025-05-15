@@ -6,8 +6,10 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/chuckatc/pokedexcli/internal/pokeapi"
+	"github.com/chuckatc/pokedexcli/internal/pokecache"
 )
 
 type cliCommand struct {
@@ -22,6 +24,8 @@ type cmdConfig struct {
 	Next     string
 	Previous string
 }
+
+var cache = pokecache.NewCache(5 * time.Second)
 
 func main() {
 	cmdRegistry = map[string]cliCommand{
@@ -104,7 +108,7 @@ func commandExit(config *cmdConfig) error {
 }
 
 func commandMap(config *cmdConfig) error {
-	mapData := pokeapi.GetMap(config.Next)
+	mapData := pokeapi.GetMap(config.Next, cache)
 	config.Next = mapData.Next
 	config.Previous = mapData.Previous
 	for _, result := range mapData.Results {
@@ -114,7 +118,7 @@ func commandMap(config *cmdConfig) error {
 }
 
 func commandMapB(config *cmdConfig) error {
-	mapData := pokeapi.GetMap(config.Previous)
+	mapData := pokeapi.GetMap(config.Previous, cache)
 	config.Next = mapData.Next
 	config.Previous = mapData.Previous
 	for _, result := range mapData.Results {
