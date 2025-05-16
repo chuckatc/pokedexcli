@@ -22,6 +22,8 @@ type LocationAreaData struct {
 }
 
 func GetMap(nextUrl string, cache *pokecache.Cache) LocationAreaData {
+	var data LocationAreaData
+
 	url := LocationAreaUrl
 	if nextUrl != "" {
 		url = nextUrl
@@ -29,7 +31,6 @@ func GetMap(nextUrl string, cache *pokecache.Cache) LocationAreaData {
 
 	mapData, ok := cache.Get(url)
 	if ok {
-		var data LocationAreaData
 		err := json.Unmarshal(mapData, &data)
 		if err != nil {
 			log.Fatal(err)
@@ -49,13 +50,12 @@ func GetMap(nextUrl string, cache *pokecache.Cache) LocationAreaData {
 		log.Fatal(err)
 	}
 
-	cache.Add(url, body)
-
-	var data LocationAreaData
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	cache.Add(url, body)
 
 	// fmt.Println("\t\tCACHE MISS")
 	return data
