@@ -21,11 +21,10 @@ type cliCommand struct {
 var cmdRegistry map[string]cliCommand
 
 type cmdConfig struct {
+	cache    *pokecache.Cache
 	Next     string
 	Previous string
 }
-
-var cache = pokecache.NewCache(5 * time.Second)
 
 func main() {
 	cmdRegistry = map[string]cliCommand{
@@ -58,6 +57,7 @@ func repl() {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	config := cmdConfig{}
+	config.cache = pokecache.NewCache(5 * time.Second)
 
 	for {
 		fmt.Print("Pokedex > ")
@@ -108,7 +108,7 @@ func commandExit(config *cmdConfig) error {
 }
 
 func commandMap(config *cmdConfig) error {
-	mapData := pokeapi.GetMap(config.Next, cache)
+	mapData := pokeapi.GetMap(config.Next, config.cache)
 	config.Next = mapData.Next
 	config.Previous = mapData.Previous
 	for _, result := range mapData.Results {
@@ -118,7 +118,7 @@ func commandMap(config *cmdConfig) error {
 }
 
 func commandMapB(config *cmdConfig) error {
-	mapData := pokeapi.GetMap(config.Previous, cache)
+	mapData := pokeapi.GetMap(config.Previous, config.cache)
 	config.Next = mapData.Next
 	config.Previous = mapData.Previous
 	for _, result := range mapData.Results {
