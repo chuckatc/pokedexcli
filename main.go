@@ -18,16 +18,15 @@ type cliCommand struct {
 	callback    func(*cmdConfig) error
 }
 
-var cmdRegistry map[string]cliCommand
-
 type cmdConfig struct {
-	cache    *pokecache.Cache
-	Next     string
-	Previous string
+	cache       *pokecache.Cache
+	cmdRegistry map[string]cliCommand
+	Next        string
+	Previous    string
 }
 
 func main() {
-	cmdRegistry = map[string]cliCommand{
+	cmdRegistry := map[string]cliCommand{
 		"help": {
 			name:        "help",
 			description: "Displays a help message",
@@ -50,14 +49,16 @@ func main() {
 		},
 	}
 
-	repl()
+	config := cmdConfig{
+		cache:       pokecache.NewCache(5 * time.Second),
+		cmdRegistry: cmdRegistry,
+	}
+
+	repl(config)
 }
 
-func repl() {
+func repl(config cmdConfig) {
 	scanner := bufio.NewScanner(os.Stdin)
-
-	config := cmdConfig{}
-	config.cache = pokecache.NewCache(5 * time.Second)
 
 	for {
 		fmt.Print("Pokedex > ")
@@ -75,7 +76,7 @@ func repl() {
 		}
 		command := words[0]
 
-		cliCmd, ok := cmdRegistry[command]
+		cliCmd, ok := config.cmdRegistry[command]
 		if ok {
 			err := cliCmd.callback(&config)
 			if err != nil {
@@ -95,7 +96,7 @@ func cleanInput(text string) []string {
 
 func commandHelp(config *cmdConfig) error {
 	fmt.Print("Welcome to the Pokedex!\nUsage:\n\n")
-	for _, command := range cmdRegistry {
+	for _, command := range config.cmdRegistry {
 		fmt.Printf("%s: %s\n", command.name, command.description)
 	}
 	return nil
