@@ -15,7 +15,7 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(*cmdConfig) error
+	callback    func(*cmdConfig, []string) error
 }
 
 type cmdConfig struct {
@@ -47,6 +47,11 @@ func main() {
 			description: "Show previous map locations",
 			callback:    commandMapB,
 		},
+		"explore": {
+			name:        "explore",
+			description: "Explore a location",
+			callback:    commandExplore,
+		},
 	}
 
 	config := cmdConfig{
@@ -76,9 +81,14 @@ func repl(config cmdConfig) {
 		}
 		command := words[0]
 
+		args := []string{}
+		if len(words) > 1 {
+			args = words[1:]
+		}
+
 		cliCmd, ok := config.cmdRegistry[command]
 		if ok {
-			err := cliCmd.callback(&config)
+			err := cliCmd.callback(&config, args)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -94,7 +104,7 @@ func cleanInput(text string) []string {
 	return words
 }
 
-func commandHelp(config *cmdConfig) error {
+func commandHelp(config *cmdConfig, args []string) error {
 	fmt.Print("Welcome to the Pokedex!\nUsage:\n\n")
 	for _, command := range config.cmdRegistry {
 		fmt.Printf("%s: %s\n", command.name, command.description)
@@ -102,13 +112,13 @@ func commandHelp(config *cmdConfig) error {
 	return nil
 }
 
-func commandExit(config *cmdConfig) error {
+func commandExit(config *cmdConfig, args []string) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
-func commandMap(config *cmdConfig) error {
+func commandMap(config *cmdConfig, args []string) error {
 	mapData := pokeapi.GetMap(config.Next, config.cache)
 	config.Next = mapData.Next
 	config.Previous = mapData.Previous
@@ -118,12 +128,27 @@ func commandMap(config *cmdConfig) error {
 	return nil
 }
 
-func commandMapB(config *cmdConfig) error {
+func commandMapB(config *cmdConfig, args []string) error {
 	mapData := pokeapi.GetMap(config.Previous, config.cache)
 	config.Next = mapData.Next
 	config.Previous = mapData.Previous
 	for _, result := range mapData.Results {
 		fmt.Println(result.Name)
 	}
+	return nil
+}
+
+func commandExplore(config *cmdConfig, args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("usage: explore <location_area>")
+	}
+
+	exploreData := pokeapi.GetExploreData(args[0], config.cache)
+
+	fmt.Println("Found Pokemon:")
+	for _, pokeEncounter := range exploreData.PokemonEncounters {
+		fmt.Println("-", pokeEncounter.Pokemon.Name)
+	}
+
 	return nil
 }
