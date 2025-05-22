@@ -2,8 +2,11 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
+	"math"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -21,6 +24,7 @@ type cliCommand struct {
 type cmdConfig struct {
 	cache       *pokecache.Cache
 	cmdRegistry map[string]cliCommand
+	pokedex     map[string]pokeapi.PokemonData
 	Next        string
 	Previous    string
 }
@@ -52,11 +56,17 @@ func main() {
 			description: "Explore a location",
 			callback:    commandExplore,
 		},
+		"catch": {
+			name:        "catch",
+			description: "Try to catch a Pokemon",
+			callback:    commandCatch,
+		},
 	}
 
 	config := cmdConfig{
 		cache:       pokecache.NewCache(5 * time.Second),
 		cmdRegistry: cmdRegistry,
+		pokedex:     make(map[string]pokeapi.PokemonData),
 	}
 
 	repl(config)
@@ -151,4 +161,52 @@ func commandExplore(config *cmdConfig, args []string) error {
 	}
 
 	return nil
+}
+
+func commandCatch(config *cmdConfig, args []string) error {
+	if len(args) != 1 {
+		return errors.New("usage: catch <pokemon_name>")
+	}
+	name := args[0]
+
+	fmt.Printf("Throwing a Pokeball at %s...\n", name)
+
+	// TODO check errors!
+	pokemonData, err := pokeapi.GetPokemonData(name, config.cache)
+	if err != nil {
+		return fmt.Errorf("you can't get ye %s", name)
+	}
+
+	if !attemptToCatch(pokemonData) {
+		fmt.Println(name, "escaped!")
+		return nil
+	}
+
+	fmt.Println(name, "was caught!")
+	config.pokedex[name] = pokemonData
+
+	return nil
+}
+
+func attemptToCatch(pokemonData pokeapi.PokemonData) bool {
+	prob := probToCatch(pokemonData.BaseExperience)
+	randFloat := rand.Float64()
+
+	return randFloat > prob
+}
+
+func probToCatch(baseExp int) float64 {
+	const maxBaseExp = 1000  // supposedly above maximum base experience of any pokemon
+	const maxExpBuffer = 100 // in case there are some over maxBaseExp
+	const probExponent = 1.2 // more base experience means exponentially harder to catch
+	const probDivisor = 2    // divide 0-1 range to scale probability
+
+	if baseExp > maxBaseExp-maxExpBuffer {
+		baseExp = maxBaseExp - maxExpBuffer
+	}
+
+	prob := math.Pow(
+		float64(maxBaseExp-baseExp)/maxBaseExp, probExponent) / probDivisor
+
+	return prob
 }
