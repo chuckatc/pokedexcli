@@ -107,13 +107,14 @@ func repl(config cmdConfig) {
 		}
 
 		cliCmd, ok := config.cmdRegistry[command]
-		if ok {
-			err := cliCmd.callback(&config, args)
-			if err != nil {
-				fmt.Println(err)
-			}
-		} else {
+		if !ok {
 			fmt.Println("Unknown command")
+			continue
+		}
+
+		err := cliCmd.callback(&config, args)
+		if err != nil {
+			fmt.Println(err)
 		}
 	}
 }
@@ -226,8 +227,8 @@ func commandInspect(config *cmdConfig, args []string) error {
 	}
 	name := args[0]
 
-	pokemon, exists := config.pokedex[name]
-	if !exists {
+	pokemon, ok := config.pokedex[name]
+	if !ok {
 		return fmt.Errorf("you haven't caught %s yet", name)
 	}
 
