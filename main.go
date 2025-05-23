@@ -66,6 +66,11 @@ func main() {
 			description: "Inspect a Pokemon",
 			callback:    commandInspect,
 		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "Show Pokemon in your Pokedex",
+			callback:    commandPokedex,
+		},
 	}
 
 	config := cmdConfig{
@@ -176,7 +181,6 @@ func commandCatch(config *cmdConfig, args []string) error {
 
 	fmt.Printf("Throwing a Pokeball at %s...\n", name)
 
-	// TODO check errors!
 	pokemonData, err := pokeapi.GetPokemonData(name, config.cache)
 	if err != nil {
 		return fmt.Errorf("you can't get ye %s", name)
@@ -240,6 +244,16 @@ func commandInspect(config *cmdConfig, args []string) error {
 	fmt.Println("Types:")
 	for _, pokeType := range pokemon.Types {
 		fmt.Printf("  - %s\n", pokeType.Type.Name)
+	}
+
+	return nil
+}
+
+func commandPokedex(config *cmdConfig, args []string) error {
+	fmt.Println("Your Pokedex:")
+
+	for _, pokemon := range config.pokedex {
+		fmt.Println("  -", pokemon.Name)
 	}
 
 	return nil
