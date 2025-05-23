@@ -61,6 +61,11 @@ func main() {
 			description: "Try to catch a Pokemon",
 			callback:    commandCatch,
 		},
+		"inspect": {
+			name:        "inspect",
+			description: "Inspect a Pokemon",
+			callback:    commandInspect,
+		},
 	}
 
 	config := cmdConfig{
@@ -209,4 +214,33 @@ func probToCatch(baseExp int) float64 {
 		float64(maxBaseExp-baseExp)/maxBaseExp, probExponent) / probDivisor
 
 	return prob
+}
+
+func commandInspect(config *cmdConfig, args []string) error {
+	if len(args) != 1 {
+		return errors.New("usage: inspect <pokemon_name>")
+	}
+	name := args[0]
+
+	pokemon, exists := config.pokedex[name]
+	if !exists {
+		return fmt.Errorf("you haven't caught %s yet", name)
+	}
+
+	fmt.Println("Name:", pokemon.Name)
+	fmt.Println("Height:", pokemon.Height)
+	fmt.Println("Weight:", pokemon.Weight)
+
+	fmt.Println("Stats:")
+	for _, stat := range pokemon.Stats {
+		fmt.Printf("  - %s: %d\n", stat.Stat.Name, stat.BaseStat)
+
+	}
+
+	fmt.Println("Types:")
+	for _, pokeType := range pokemon.Types {
+		fmt.Printf("  - %s\n", pokeType.Type.Name)
+	}
+
+	return nil
 }
